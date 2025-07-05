@@ -1,0 +1,7 @@
+.venv
+.ruff_cache
+__pycache__
+.DS_Store
+output
+.vscode
+automp_fetch.yaml
