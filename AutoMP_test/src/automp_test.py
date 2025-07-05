@@ -108,7 +108,6 @@ class AutoMP_test:
         self._necessary_compiler_flags = data.get("necessary-compiler-flags", [])
         self._repeat = data.get("repeat", 1)
         self._args: dict = data["args"]
-        self._write_summary = data.get("summary", False)
 
         target_file = data.get("__target-file", None)
         if target_file is not None:
@@ -119,8 +118,6 @@ class AutoMP_test:
             self.__target_file = None
 
         self.__run()
-        if self._write_summary:
-            self.__create_summary()
 
         Log.logfile_write(self._output_directory, "ended")
 
@@ -295,48 +292,3 @@ class AutoMP_test:
             run_time = 0
 
         return exit_code, output, run_time
-
-    def __create_summary(self):
-        # load all output files
-        output_files = [
-            f
-            for f in os.scandir(self._output_directory)
-            if f.is_file() and f.name.endswith(".json")
-        ]
-        summary: dict[str, list[Task]] = {}
-        for file in output_files:
-            with open(file.path, "r") as f:
-                data = json.load(f)
-                task = Task.from_dict(data)
-                summary.setdefault(task.taskname, [])
-                summary[task.taskname].append(task)
-
-        task_tables = []
-
-        for taskname in summary.keys():
-            run_times = []
-            for task in sorted(
-                summary[taskname],
-                key=lambda x: ("sequential" in x.llm, x.llm),
-                reverse=True,
-            ):
-                run_times.append(task.llm)
-                for run in task.runs.keys():
-                    run_times.append(
-                        sum([r.run_time for r in task.runs[run]]) / len(task.runs[run])
-                    )
-
-            table_header = [[taskname, *summary[taskname][0].args]]
-            jump = len(summary[taskname][0].args) + 1
-            table_body = [
-                run_times[i : i + jump] for i in range(0, len(run_times), jump)
-            ]
-            task_tables.append(table_header + table_body)
-
-        tables_string = "\n\n\n".join(
-            [tabulate(table, headers="firstrow") for table in task_tables]
-        )
-        summary_path = os.path.join(self._output_directory, "summary.md")
-        with open(summary_path, "w") as f:
-            f.write(tables_string + "\n")
-        Log.info(f"Summary written to {summary_path}")

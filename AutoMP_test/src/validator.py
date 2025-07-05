@@ -58,7 +58,6 @@ class Validator:
         errors.extend(Validator.__validate_args(data))
         errors.extend(Validator.__validate_repeat(data))
         errors.extend(Validator.__validate_overwrite_output(data))
-        errors.extend(Validator.__validate_summary(data))
 
         return errors, data
 
@@ -271,14 +270,6 @@ class Validator:
     @staticmethod
     def __validate_overwrite_output(data) -> list[str]:
         errors = _validate(data, "overwrite-output", False, bool)
-        if errors:
-            return errors
-
-        return []
-
-    @staticmethod
-    def __validate_summary(data) -> list[str]:
-        errors = _validate(data, "summary", False, bool)
         if errors:
             return errors
 
