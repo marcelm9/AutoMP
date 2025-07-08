@@ -108,6 +108,7 @@ class AutoMP_test:
         self._necessary_compiler_flags = data.get("necessary-compiler-flags", [])
         self._repeat = data.get("repeat", 1)
         self._args: dict = data["args"]
+        self._timeout = data.get("timeout", 60)
 
         target_file = data.get("__target-file", None)
         if target_file is not None:
@@ -282,7 +283,7 @@ class AutoMP_test:
             [executable_path, *arg.split(" ")],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=self._timeout,
         )
         exit_code = process.returncode
         output = process.stdout + process.stderr

@@ -3,9 +3,8 @@ import subprocess
 import sys
 from typing import Union
 
-from ruamel.yaml import YAML
-
 import src.error as e
+from ruamel.yaml import YAML
 
 from .log import Log
 from .util import normalize_path
@@ -59,6 +58,7 @@ class Validator:
         errors.extend(Validator.__validate_args(data))
         errors.extend(Validator.__validate_repeat(data))
         errors.extend(Validator.__validate_overwrite_output(data))
+        errors.extend(Validator.__validate_timeout(data))
 
         return errors, data
 
@@ -273,5 +273,18 @@ class Validator:
         errors = _validate(data, "overwrite-output", False, bool)
         if errors:
             return errors
+
+        return []
+
+    @staticmethod
+    def __validate_timeout(data) -> list[str]:
+        errors = _validate(data, "timeout", False, int)
+        if errors:
+            return errors
+
+        if "timeout" in data and int(data["timeout"]) < 1:
+            return [
+                e.value_error("timeout", data["timeout"], "value has to be above 0")
+            ]
 
         return []
