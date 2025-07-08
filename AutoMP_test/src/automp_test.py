@@ -4,11 +4,11 @@ import platform
 import subprocess
 import time
 from dataclasses import dataclass
+
 from tabulate import tabulate
 
-from .util import normalize_path
-
 from .log import Log
+from .util import normalize_path
 
 
 @dataclass
@@ -279,14 +279,19 @@ class AutoMP_test:
         return exit_code, compilation_output, executable_path, end_time - start_time
 
     def __run_executable(self, executable_path: str, arg: str):
-        process = subprocess.run(
-            [executable_path, *arg.split(" ")],
-            capture_output=True,
-            text=True,
-            timeout=self._timeout,
-        )
-        exit_code = process.returncode
-        output = process.stdout + process.stderr
+        try:
+            process = subprocess.run(
+                [executable_path, *arg.split(" ")],
+                capture_output=True,
+                text=True,
+                timeout=self._timeout,
+            )
+            exit_code = process.returncode
+            output = process.stdout + process.stderr
+        except subprocess.TimeoutExpired:
+            exit_code = -1
+            output = "timeout"
+
         if exit_code == 0:
             _, run_time = json.loads(output)
         else:
