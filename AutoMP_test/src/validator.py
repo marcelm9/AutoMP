@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from typing import Union
 
 from ruamel.yaml import YAML
 
@@ -14,7 +15,7 @@ def _validate(
     data: dict,
     key: str,
     required: bool,
-    type_: type | tuple[type],
+    type_: Union[type, tuple[type]],
     dependency: str = None,
 ) -> list[str]:
     if required and key not in data:
@@ -35,10 +36,10 @@ def _validate(
 
 
 class Validator:
-    __path: str | None = None
+    __path: Union[str, None] = None
 
     @staticmethod
-    def validate(path, target_file: str | None) -> tuple[list[str], dict]:
+    def validate(path, target_file: Union[str, None]) -> tuple[list[str], dict]:
         yaml = YAML(typ="safe")
         try:
             with open(path, "r") as file:
