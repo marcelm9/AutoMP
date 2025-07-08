@@ -129,6 +129,9 @@ class Validator:
         if errors:
             return errors
 
+        if "input-directory" not in data:
+            return []
+
         path = normalize_path(data["input-directory"], Validator.__path)
 
         if not os.path.exists(path):
