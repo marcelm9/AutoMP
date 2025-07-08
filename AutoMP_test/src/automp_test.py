@@ -100,7 +100,6 @@ class AutoMP_test:
             if "input-directory" in data
             else None
         )
-        self._input_directory = normalize_path(data["input-directory"], config_file_dir)
         self._output_directory = normalize_path(
             data["output-directory"], config_file_dir
         )
