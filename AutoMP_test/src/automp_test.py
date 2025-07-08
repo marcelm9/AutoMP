@@ -95,7 +95,11 @@ class MyPosixDirEntry:
 class AutoMP_test:
     def __init__(self, config_file_dir, data):
         self._compiler_command = data["compiler-command"]
-        self._input_directory = normalize_path(data["input-directory"], config_file_dir)
+        self._input_directory = (
+            normalize_path(data["input-directory"], config_file_dir)
+            if "input-directory" in data
+            else None
+        )
         self._input_directory = normalize_path(data["input-directory"], config_file_dir)
         self._output_directory = normalize_path(
             data["output-directory"], config_file_dir
@@ -143,11 +147,15 @@ class AutoMP_test:
         return system_info
 
     def __run(self):
-        for file in ([self.__target_file] if self.__target_file is not None else []) + [
-            f
-            for f in os.scandir(self._input_directory)
-            if f.is_file() and f.name.endswith(".c")
-        ]:
+        for file in ([self.__target_file] if self.__target_file is not None else []) + (
+            [
+                f
+                for f in os.scandir(self._input_directory)
+                if f.is_file() and f.name.endswith(".c")
+            ]
+            if self._input_directory is not None
+            else []
+        ):
             Log.info(f"Processing {file.name}")
             current = Task()
             current.system = self.__get_system_info()
