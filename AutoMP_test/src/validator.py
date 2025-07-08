@@ -193,17 +193,6 @@ class Validator:
                 )
             ]
 
-        # check if directory is empty
-        if len(os.listdir(path)) > 0:
-            if not data.get("overwrite-output", False):
-                return [
-                    e.value_error(
-                        "output-directory",
-                        path,
-                        "directory is not empty (add 'overwrite-output: true' to the config file to possibly overwrite existing files)",
-                    )
-                ]
-
         return []
 
     @staticmethod

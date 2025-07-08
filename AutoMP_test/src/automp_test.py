@@ -5,8 +5,6 @@ import subprocess
 import time
 from dataclasses import dataclass
 
-from tabulate import tabulate
-
 from .log import Log
 from .util import normalize_path
 
@@ -47,10 +45,11 @@ class Task:
     runs: dict[str, Run] = None
     system: dict = None
 
+    def get_saving_path(self, directory: str):
+        return os.path.join(directory, f"{os.path.basename(self.path)}.json")
+
     def save_into_directory(self, directory: str):
-        with open(
-            os.path.join(directory, f"{os.path.basename(self.path)}.json"), "w"
-        ) as f:
+        with open(self.get_saving_path(directory), "w") as f:
             json.dump(
                 {
                     "system": self.system,
@@ -112,6 +111,7 @@ class AutoMP_test:
         self._repeat = data.get("repeat", 1)
         self._args: dict = data["args"]
         self._timeout = data.get("timeout", 60)
+        self._overwrite_output = data.get("overwrite-output", False)
 
         target_file = data.get("__target-file", None)
         if target_file is not None:
@@ -168,6 +168,19 @@ class AutoMP_test:
                 current.llm = current.llm.split(":")[0]
             if current.llm.endswith(".c"):
                 current.llm = current.llm.removesuffix(".c")
+
+            # if file already exists and overwrite-output is False, then skip
+            if not self._overwrite_output and os.path.exists(
+                current.get_saving_path(self._output_directory)
+            ):
+                Log.error("  Output file already exists, skipping")
+                Log.logfile_write_test(
+                    self._output_directory,
+                    current.path,
+                    False,
+                    "output file already exists",
+                )
+                continue
 
             # get arguments from yaml
             if (
