@@ -2,7 +2,7 @@ import os
 from time import strftime
 
 from rich import print
-from rich.progress import BarColumn, Progress, TimeRemainingColumn
+from rich.progress import BarColumn, Progress
 
 
 class Log:
@@ -80,7 +80,6 @@ class Log:
             "[progress.description]{task.description}",
             BarColumn(),
             "[progress.percentage]{task.percentage:>3.0f}%",
-            TimeRemainingColumn(elapsed_when_finished=True, compact=True),
         )
 
     @staticmethod
