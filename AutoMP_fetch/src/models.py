@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import time
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
@@ -134,74 +135,85 @@ class Models:
             f"{timestamp_str}__{task_name}__{model.replace('/', '_')}",
         )
 
-        request_success, message, seconds = self.__request(model, content)
-
-        if not request_success and self._job.get_max_attempts() > 1:
-            attempts = 1
-            while not request_success and attempts < self._job.get_max_attempts():
-                Log.debug(
-                    f"Retrying query for model '{model}' (attempt {attempts}/{self._job.get_max_attempts()})"
-                )
-                request_success, message, seconds = self.__request(model, content)
-                attempts += 1
-
-        if not request_success:
-            Log.debug(f"Failed query for model '{model}' during request")
-            if write_log:
-                self.__write_log(
-                    filename_log,
-                    request_success=request_success,
-                    request_seconds=seconds,
-                    request_error=message,
-                )
-            if write_output:
-                self.__write_output(filename_output, "[AutoMP_fetch] An error occurred")
-            return False, "error during request"
-
-        parsing_error = None
         try:
-            text_response = json.loads(message)["choices"][0]["message"]["content"]
-        except Exception:
-            text_response = None
-            parsing_error = (
-                "cannot find 'choices[0].message.content' in OpenRouter response"
-            )
+            request_success, message, seconds = self.__request(model, content)
 
-        if text_response is None:
-            Log.debug(f"Failed query for model '{model}' during parsing")
+            if not request_success and self._job.get_max_attempts() > 1:
+                attempts = 1
+                while not request_success and attempts < self._job.get_max_attempts():
+                    Log.debug(
+                        f"Retrying query for model '{model}' (attempt {attempts}/{self._job.get_max_attempts()})"
+                    )
+                    request_success, message, seconds = self.__request(model, content)
+                    attempts += 1
+
+            if not request_success:
+                Log.debug(f"Failed query for model '{model}' during request")
+                if write_log:
+                    self.__write_log(
+                        filename_log,
+                        request_success=request_success,
+                        request_seconds=seconds,
+                        request_error=message,
+                    )
+                if write_output:
+                    self.__write_output(
+                        filename_output, "[AutoMP_fetch] An error occurred"
+                    )
+                return False, "error during request"
+
+            parsing_error = None
+            try:
+                text_response = json.loads(message)["choices"][0]["message"]["content"]
+            except Exception:
+                text_response = None
+                parsing_error = (
+                    "cannot find 'choices[0].message.content' in OpenRouter response"
+                )
+
+            if text_response is None:
+                Log.debug(f"Failed query for model '{model}' during parsing")
+                if write_log:
+                    self.__write_log(
+                        filename_log,
+                        request_success=request_success,
+                        request_seconds=seconds,
+                        parsing_success=False,
+                        parsing_error=parsing_error,
+                        openrouter=message,
+                    )
+                if write_output:
+                    self.__write_output(
+                        filename_output, "[AutoMP_fetch] An error occurred"
+                    )
+                return False, "error during parsing"
+
+            Log.debug(f"Completed query for model '{model}'")
+
             if write_log:
+                try:
+                    openrouter_content = json.loads(message)
+                    openrouter_content["choices"][0]["message"]["content"] = (
+                        "[AutoMP_fetch] See corresponding output file"
+                    )
+                except Exception:
+                    openrouter_content = None
                 self.__write_log(
                     filename_log,
                     request_success=request_success,
                     request_seconds=seconds,
-                    parsing_success=False,
+                    parsing_success=True,
                     parsing_error=parsing_error,
-                    openrouter=json.loads(message),
+                    openrouter=openrouter_content,
                 )
+
             if write_output:
-                self.__write_output(filename_output, "[AutoMP_fetch] An error occurred")
-            return False, "error during parsing"
+                self.__write_output(filename_output, text_response)
 
-        Log.debug(f"Completed query for model '{model}'")
+            return True, ""
 
-        if write_log:
-            openrouter_content = json.loads(message)
-            openrouter_content["choices"][0]["message"]["content"] = (
-                "[AutoMP_fetch] See corresponding output file"
-            )
-            self.__write_log(
-                filename_log,
-                request_success=request_success,
-                request_seconds=seconds,
-                parsing_success=True,
-                parsing_error=parsing_error,
-                openrouter=openrouter_content,
-            )
-
-        if write_output:
-            self.__write_output(filename_output, text_response)
-
-        return True, ""
+        except Exception:
+            return False, str(traceback.format_exc())
 
     def __write_output(self, output_filename: str, content: str):
         with open(output_filename, "w") as file:
