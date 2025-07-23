@@ -1,3 +1,2 @@
 rich
 ruamel.yaml
-tabulate
